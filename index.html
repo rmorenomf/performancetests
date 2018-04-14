@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="es">
+	<head>
+		<meta charset="utf-8">
+		<!-- meta name="viewport" content="width=device-width, initial-scale=1.0" -->
+		<meta http-equiv="X-UA-Compatible" content="ie=edge">
+		<title>Some examples of code.</title>
+	</head>
+	<body>
+		<div id="testResult"></div>
+
+		<script type="script/worker" class="test">
+			function sam(align) {
+				if (align === 'left') {
+					return 'input';
+				} 
+				if (align === 'center') {
+					return '';
+				}
+			
+				return 'output';
+			}
+
+			self.onmessage = function(e) {
+				switch (e.data.msg) {
+					case 'start':
+						
+						// console.log('[*] Start the first test.');
+
+						let t0 = performance.now();
+						// console.log('[*] Run sam case.');
+						Array(e.data.loops).fill().forEach( () => {
+							sam(e.data.align);
+						});
+						let t1 = performance.now();
+						const result = `Call to sam took ${(t1 - t0)} milliseconds for ${e.data.loops} loops.`;
+						postMessage({msg: 'finised', result, ft:  String(sam)});
+
+						break;
+				}
+			};
+		</script>
+		<script type="script/worker" class="test">
+			function rum(align) {
+				return (({'left': 'input', 'center': ' '})[align] || 'output').trim();
+			}
+			
+			self.onmessage = function(e) {
+				switch (e.data.msg) {
+					case 'start':
+						// console.log('[*] Start the second test.');
+
+						let t0 = performance.now();
+						// console.log('[*] Run rum case.');
+						Array(e.data.loops).fill().forEach( () => {
+							rum(e.data.align);
+						});
+						let t1 = performance.now();
+						const result = `Call to rum took ${(t1 - t0)} milliseconds for ${e.data.loops} loops.`;
+						postMessage({msg: 'finised', result, ft:  String(rum)});
+						
+						break;
+				}
+			};
+		</script>
+		<script type="script/worker" class="test">
+			function switchTest(align) {
+				switch (align) {
+					case 'left':
+						return 'input';
+						break;
+					case 'center':
+						return '';
+						break;
+					default:
+						return 'output';
+						break;
+				}
+			}
+
+			self.onmessage = function(e) {
+				switch (e.data.msg) {
+					case 'start':
+						
+						// console.log('[*] Start the third test.');
+
+						let t0 = performance.now();
+						// console.log('[*] Run sam case.');
+						Array(e.data.loops).fill().forEach( () => {
+							switchTest(e.data.align);
+						});
+						let t1 = performance.now();
+						const result = `Call to switchTest took ${(t1 - t0)} milliseconds for ${e.data.loops} loops.`;
+						postMessage({msg: 'finised', result, ft:  String(switchTest)});
+
+						break;
+				}
+			};
+		</script>
+
+		<script>
+			// Main function.
+			(async() => {
+				// Collect all tests
+				const testElements = document.getElementsByClassName('test');
+				Array.prototype.filter.call(testElements, (testElement) => {
+					// Create a worker by test.
+					const workerCodeCase = testElement.textContent;
+					const blob = new Blob([workerCodeCase],{
+						type: 'text/javascript'
+					});
+					const url = URL.createObjectURL(blob);
+					const worker = new Worker(url);
+					worker.onmessage = e => {
+						switch (e.data.msg) {
+							case 'finised':
+								console.log(e.data.result);
+								document.getElementById("testResult").innerHTML += 
+									'<pre>' + e.data.ft + '</pre><br>' + e.data.result + '<hr>';
+								break;
+						}
+					};
+					worker.postMessage({
+						msg: 'start',
+						loops: 100000,
+						align: 'center'
+					}, []);
+
+					URL.revokeObjectURL(url); // cleanup blob
+				});
+			})();
+		</script>	
+	</body>
+</html>
